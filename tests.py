@@ -28,7 +28,8 @@ class test_nmea(unittest.TestCase):
                       'altitude_units': 'M',
                       'geoidal_separation': '',
                       'geoidal_separation_val': '',
-                      'age': '', 'dif_reference': '0000',
+                      'age': '',
+                      'dif_reference': '0000',
                       'checksum': '3E'}
         gprmc_str = "$GPRMC,080633.000,A,4827.1601,N,03503.2484,E,,,111119,,,A*68"
         gprmc_dict = {'utc': '080633.000',
@@ -83,6 +84,25 @@ class test_nmea(unittest.TestCase):
         b = nmea_decoder.nmea_decode(gprmc_str, False)
         self.assertEqual(b, gprmc_dict)
 
+    def test_empty_string_with_correct_checksum(self):
+        gpgga_str = "$GPGGA,,,,,,,,,,,,,,*56"
+        gpgga_dict = {'utc': '',
+                      'lat': '',
+                      'lat_dir': '',
+                      'lon': '',
+                      'lon_dir': '',
+                      'quality': '',
+                      'sattelite_num': '',
+                      'hdop': '',
+                      'altitude': '',
+                      'altitude_units': '',
+                      'geoidal_separation': '',
+                      'geoidal_separation_val': '',
+                      'age': '',
+                      'dif_reference': '',
+                      'checksum': '56'}
+        a = nmea_decoder.nmea_decode(gpgga_str)
+        self.assertEqual(a, gpgga_dict)
 
 if __name__ == '__main__':
     unittest.main()
