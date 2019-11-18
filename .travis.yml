@@ -3,4 +3,4 @@ python:
   - "3.4"
   - "3.6"
 script:
-  - python tests.py
+  - python -m unittest -v tests.py

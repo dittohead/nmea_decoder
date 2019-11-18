@@ -1,7 +1,6 @@
 import unittest
 import __init__ as nmea_decoder
 
-
 class test_nmea(unittest.TestCase):
     def test_wrong_crc(self):
         gpgga_str = "$GPGGA,080633.000,4926.1601,N,03403.2484,W,1,05,5.1,86.0,M,,,,0000*3E"
@@ -138,6 +137,16 @@ class test_nmea(unittest.TestCase):
 
         b = nmea_decoder.nmea_decode(gprmc_str, False)
         self.assertEqual(b, gprmc_dict)
+
+    def test_empty_string_with_correct_checksum_non_empty_values(self):
+        gpgga_str = "$GPGGA,,,,,,,,,,,,,,*56"
+        gpgga_dict = {'tag': '$GPGGA',
+                      'lat': 0.0,
+                      'lon': 0.0,
+                      'checksum': '56'}
+        a = nmea_decoder.nmea_decode(gpgga_str, zero_values=False)
+        self.assertEqual(a, gpgga_dict)
+
 
 if __name__ == '__main__':
     unittest.main()
