@@ -6,9 +6,9 @@ GPS NMEA strings decoder
 Calculates checksum and UTC timestamp
 
 **Supported GPS data types**
-* GPGGA
-* GPRMC
+* GPGGA - Global Positioning System Fix Data
+* GPRMC - Recommended minimum specific GPS/Transit data
 
 **Requirements**
-* re
-
+* re (include in Python)
+* unittest (include in Python)
