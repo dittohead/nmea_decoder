@@ -1,24 +1,29 @@
-# http://aprs.gids.nl/nmea/
-# https://docs.novatel.com/OEM7/Content/Logs/GPGGA.htm
-# https://docs.novatel.com/OEM7/Content/Logs/GPRMC.htm
 import re
+'''
+How to decode GPS data:
+http://aprs.gids.nl/nmea/
+https://docs.novatel.com/OEM7/Content/Logs/GPGGA.htm
+https://docs.novatel.com/OEM7/Content/Logs/GPRMC.htm
+https://www.gpsinformation.org/dale/nmea.htm
+'''
 
-
-def nmea_decode(str, raw=True):
+def nmea_decode(str, zero_values=True, raw_data=False):
     """
 
     :param str: Raw GPS string $GPXXX[]
-    :param raw: if true returns all value include empty
-    :return: dict with keys
+    :param zero_values: if true returns all values include empty
+    :param raw_data: return only decoded data, without calc timestamp for GPRMS and without convert time and date to
+                    UTC timestamp, default off
+    :return: dict with decoded data
     """
     try:
         _calc_checksum(str)
         msg = str.split(',')
         if msg[0]=='$GPGGA':
-            result = _decode_gpgga(msg, raw)
+            result = _decode_gpgga(msg, zero_values, raw_data)
             return result
         elif msg[0]=='$GPRMC':
-            result = _decode_gprmc(msg, raw)
+            result = _decode_gprmc(msg, zero_values, raw_data)
             return result
         else:
             return {"error": "No decoder for " + msg[0] + " GPS data"}
@@ -30,7 +35,8 @@ def nmea_decode(str, raw=True):
         raise
 
 
-def _decode_gpgga(message_list, raw):
+def _decode_gpgga(message_list, zero_values, raw_data):
+    # GGA - Fix information
     result = {}
     gpgga_keys = [
         "tag",
@@ -56,11 +62,13 @@ def _decode_gpgga(message_list, raw):
     message_list.append(dif)
     message_list.append(checksum)
     result = dict(zip(gpgga_keys, message_list))
-    lat = _calc_lat(result['lat'], result['lat_dir'])
-    lon = _calc_lon(result['lon'], result['lon_dir'])
-    result.update({"lat": lat})
-    result.update({"lon": lon})
-    if raw:
+    if not raw_data:
+        lat = _calc_lat(result['lat'], result['lat_dir'])
+        lon = _calc_lon(result['lon'], result['lon_dir'])
+        result.update({"lat": lat})
+        result.update({"lon": lon})
+
+    if zero_values:
         return result
     else:
         _result = {}
@@ -70,7 +78,8 @@ def _decode_gpgga(message_list, raw):
         return _result
 
 
-def _decode_gprmc(message_list, raw):
+def _decode_gprmc(message_list, zero_values, raw_data):
+    # RMC - recommended minimum data for gps
     result = {}
     gprmc_keys = [
         "tag",
@@ -93,15 +102,16 @@ def _decode_gprmc(message_list, raw):
     message_list.append(mode_ind)
     message_list.append(checksum)
     result = dict(zip(gprmc_keys, message_list))
-    lat = _calc_lat(result['lat'], result['lat_dir'])
-    lon = _calc_lon(result['lon'], result['lon_dir'])
-    result.update({"lat": lat})
-    result.update({"lon": lon})
-    timestamp = _calc_utc_timestamp(result['utc'], result['date'])
-    result.update({"utc_timestamp": timestamp})
-    result.pop('utc')
-    result.pop('date')
-    if raw:
+    if not raw_data:
+        lat = _calc_lat(result['lat'], result['lat_dir'])
+        lon = _calc_lon(result['lon'], result['lon_dir'])
+        result.update({"lat": lat})
+        result.update({"lon": lon})
+        timestamp = _calc_utc_timestamp(result['utc'], result['date'])
+        result.update({"utc_timestamp": timestamp})
+        result.pop('utc')
+        result.pop('date')
+    if zero_values:
         return result
     else:
         _result = {}
@@ -144,17 +154,20 @@ def _calc_lat(lat, ns):
     :param ns: North or South
     :return: xx.xxxxxx deg, -xx.xxxxxx if South
     """
-    deg_min, sec = str(lat).split('.')
-    deg = deg_min[0:2]
-    deg = int(deg)
-    min = int(deg_min[2:4])
-    min_sec = str(min) + '.' + sec
-    min_sec = float(min_sec)
-    deg_part = min_sec / 60
-    deg_part = float(format(deg_part, '.6f'))
-    lat_deg = deg + deg_part
-    if ns == "S" or ns == 's':
-        lat_deg *= -1
+    try:
+        deg_min, sec = str(lat).split('.')
+        deg = deg_min[0:2]
+        deg = int(deg)
+        min = int(deg_min[2:4])
+        min_sec = str(min) + '.' + sec
+        min_sec = float(min_sec)
+        deg_part = min_sec / 60
+        deg_part = float(format(deg_part, '.6f'))
+        lat_deg = deg + deg_part
+        if ns == "S" or ns == 's':
+            lat_deg *= -1
+    except:
+        lat_deg = float(0)
     return lat_deg
 
 
@@ -165,18 +178,22 @@ def _calc_lon(lon, ew):
     :param ew: East or West
     :return:  yy.yyyyyy deg, -yy.yyyyyy if West
     """
-    lon = lon.lstrip("0")
-    deg_min, sec = str(lon).split('.')
-    deg = deg_min[0:2]
-    deg = int(deg)
-    min = int(deg_min[2:4])
-    min_sec = str(min) + '.' + sec
-    min_sec = float(min_sec)
-    deg_part = min_sec / 60
-    deg_part = float(format(deg_part, '.6f'))
-    lon_deg = deg + deg_part
-    if ew == "W" or ew == 'w':
-        lon_deg *= -1
+    try:
+        lon = lon.lstrip("0")
+        deg_min, sec = str(lon).split('.')
+        deg = deg_min[0:2]
+        deg = int(deg)
+        min = int(deg_min[2:4])
+        min_sec = str(min) + '.' + sec
+        min_sec = float(min_sec)
+        deg_part = min_sec / 60
+        deg_part = float(format(deg_part, '.6f'))
+        lon_deg = deg + deg_part
+        if ew == "W" or ew == 'w':
+            lon_deg *= -1
+    except:
+        lon_deg = float(0)
+
     return lon_deg
 
 
