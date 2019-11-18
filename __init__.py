@@ -16,12 +16,18 @@ def nmea_decode(str, raw=True):
         msg = str.split(',')
         if msg[0]=='$GPGGA':
             result = _decode_gpgga(msg, raw)
+            return result
         elif msg[0]=='$GPRMC':
             result = _decode_gprmc(msg, raw)
-        return result
+            return result
+        else:
+            return {"error": "No decoder for " + msg[0] + " GPS data"}
 
     except ValueError:
-            return {"error": "checksum mismatch"}
+        return {"error": "checksum mismatch"}
+
+    except UnboundLocalError:
+        raise
 
 
 def _decode_gpgga(message_list, raw):
@@ -120,8 +126,8 @@ def _calc_checksum(str):
     if checksum == str_checksum:
         return True
     else:
-        return False
         raise ValueError("Checksum mismath!")
+        return False
 
 
 def _bytes_to_int(bytes):
@@ -179,7 +185,7 @@ def _calc_utc_timestamp(gps_time, gps_date):
     by default years read from interval from 1950 to 2049
     :param gps_time: time from GPS string like HH.MM.SS.xxx
     :param gps_date: date from GPS string like ddmmyy
-    :return: timestamp in UTC format yyyy-mm-ddTHH:MM:SSZ
+    :return: timestamp in UTC format yyyy-mm-ddTHH:MM:SSZ, in case of error return 1970-01-01T00:00:00Z
     """
     try:
         hms, msec = gps_time.split('.')
