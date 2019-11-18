@@ -18,8 +18,8 @@ def nmea_decode(str, raw=True):
 
 def _decode_gpgga(list, raw):
     result = {}
-    list.remove('$GPGGA')
     gpgga_keys = [
+        "tag",
         "utc",
         "lat",
         "lat_dir",
@@ -41,21 +41,25 @@ def _decode_gpgga(list, raw):
     dif, checksum = checksum.split('*')
     list.append(dif)
     list.append(checksum)
+    result = dict(zip(gpgga_keys, list))
+    lat = _calc_lat(result['lat'], result['lat_dir'])
+    lon = _calc_lon(result['lon'], result['lon_dir'])
+    result.update({"lat": lat})
+    result.update({"lon": lon})
     if raw:
-        result = dict(zip(gpgga_keys, list))
+        return result
     else:
-        _result = dict(zip(gpgga_keys, list))
-        for item in _result:
-            if _result[item] != '':
-                result.update({item: _result[item]})
-
-    return result
+        _result = {}
+        for item in result:
+            if result[item]!='':
+                _result.update({item: result[item]})
+        return _result
 
 
 def _decode_gprmc(list, raw):
     result = {}
-    list.remove('$GPRMC')
     gprmc_keys = [
+        "tag",
         "utc",
         "pos_status",
         "lat",
@@ -74,15 +78,19 @@ def _decode_gprmc(list, raw):
     mode_ind, checksum = checksum.split('*')
     list.append(mode_ind)
     list.append(checksum)
+    result = dict(zip(gprmc_keys, list))
+    lat = _calc_lat(result['lat'], result['lat_dir'])
+    lon = _calc_lon(result['lon'], result['lon_dir'])
+    result.update({"lat": lat})
+    result.update({"lon": lon})
     if raw:
-        result = dict(zip(gprmc_keys, list))
+        return result
     else:
-        _result = dict(zip(gprmc_keys, list))
-        for item in _result:
-            if _result[item]!='':
-                result.update({item: _result[item]})
-
-    return result
+        _result = {}
+        for item in result:
+            if result[item]!='':
+                _result.update({item: result[item]})
+        return _result
 
 
 def _calc_checksum(str):
@@ -103,3 +111,36 @@ def _bytes_to_int(bytes):
     for b in bytes:
         result = result * 256 + int(b)
     return result
+
+
+def _calc_lat(lat, ns):
+    deg_min, sec = str(lat).split('.')
+    deg = deg_min[0:2]
+    deg = int(deg)
+    min = int(deg_min[2:4])
+    min_sec = str(min) + '.' + sec
+    min_sec = float(min_sec)
+    deg_part = min_sec / 60
+    deg_part = float(format(deg_part, '.6f'))
+    lat_deg = deg + deg_part
+    if ns == "S" or ns == 's':
+        lat_deg *= -1
+    return lat_deg
+
+
+def _calc_lon(lon, ew):
+    lon = lon.lstrip("0")
+    deg_min, sec = str(lon).split('.')
+    deg = deg_min[0:2]
+    deg = int(deg)
+    min = int(deg_min[2:4])
+    min_sec = str(min) + '.' + sec
+    min_sec = float(min_sec)
+    deg_part = min_sec / 60
+    deg_part = float(format(deg_part, '.6f'))
+    lon_deg = deg + deg_part
+    if ew == "W" or ew == 'w':
+        lon_deg *= -1
+    return lon_deg
+    
+#todo add timestamp fix
