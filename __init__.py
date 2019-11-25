@@ -128,7 +128,11 @@ def _calc_checksum(str):
     :return: boolean, raise Value error
     """
     checksum = 0
-    raw_string, str_checksum = str.split('*')
+    try:
+        raw_string, str_checksum = str.split('*')
+    except ValueError:
+        print("missing checksum value")
+        raise ValueError
     str_checksum = int(str_checksum, 16)
     raw_string = raw_string.lstrip("$")
     for char in raw_string:
@@ -136,7 +140,7 @@ def _calc_checksum(str):
     if checksum == str_checksum:
         return True
     else:
-        raise ValueError("Checksum mismath!")
+        raise ValueError("Checksum mismath1!")
         return False
 
 
